@@ -5,7 +5,7 @@ from manim import *
 from manim_slides import Slide
 
 # Initialize variables
-presentation_path = 'rectangles.pptx'
+presentation_path = 'BasicMeshes.pptx'
 slides_shapes_info = []  # Store shapes info for all slides
 global_shapes = {}  # Global dictionary to store shapes info with shape_id as key
 background_color = None
@@ -33,11 +33,19 @@ def create_mobject(shape_info):
         mobject = Circle(radius=radius)
     elif shape_info['type'] == 'text':
         mobject = Text(shape_info['text'], font_size=24)
-    
+    elif shape_info['type'] == 'image' and shape_info['image_path']:
+        mobject = ImageMobject(shape_info['image_path'])
+        mobject.width, mobject.height = shape_info['dimensions']
+    elif shape_info['type'] == 'line':
+        # Assuming shape_info['dimensions'] contains start and end points for the line
+        start_point, end_point = shape_info['dimensions']
+        mobject = Line(start=start_point, end=end_point)
+
     if mobject:
         mobject.move_to(shape_info['position'])
-    
+
     return mobject
+
 
 def extract_shapes_from_slide(slide):
     """Function to extract relevant info from a slide and store shape details."""
@@ -48,25 +56,58 @@ def extract_shapes_from_slide(slide):
             'type': None,
             'position': convert_position(shape),
             'dimensions': (shape.width.pt / 72, shape.height.pt / 72),
-            'text': shape.text if shape.has_text_frame and shape.text else None
+            'text': shape.text if shape.has_text_frame and shape.text else None,
+            'image_path': None
         }
 
         if shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE:
             # Only supports Rectangle and Oval (circle) so far.
-            if shape.auto_shape_type == MSO_AUTO_SHAPE_TYPE.RECTANGLE:
+            if shape.name.startswith('Line'):
+                shape_info['type'] = 'line'
+                start_point = [
+                    shape.left.pt / 72 - config.frame_width / 2,
+                    config.frame_height / 2 - shape.top.pt / 72,
+                    0
+                ]
+                end_point = [
+                    (shape.left.pt + shape.width.pt) / 72 - config.frame_width / 2,
+                    config.frame_height / 2 - (shape.top.pt + shape.height.pt) / 72,
+                    0
+                ]
+                shape_info['dimensions'] = (start_point, end_point)
+            elif shape.auto_shape_type == MSO_AUTO_SHAPE_TYPE.RECTANGLE:
                 shape_info['type'] = 'rectangle'
             elif shape.auto_shape_type == MSO_AUTO_SHAPE_TYPE.OVAL:
                 shape_info['type'] = 'oval'
             else:
                 continue
-        elif shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX or shape.has_text_frame:
+            
+        elif shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX or shape.has_text_frame: # Text box
             if shape.has_text_frame and shape.text:
                 shape_info['type'] = 'text'
             else:
                 continue
+            
+        elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:  # Image
+            shape_info['type'] = 'image'
+            image = shape.image
+            image_bytes = image.blob
+            image_filename = f"image_{shape.shape_id}.png"
+            with open(image_filename, 'wb') as image_file:
+                image_file.write(image_bytes)
+            shape_info['image_path'] = image_filename
+        
+        # elif shape.shape_type == MSO_SHAPE_TYPE.MEDIA: # Video 
+        #     shape_info['type'] = 'media'
+        #     image = shape.poster_frame
+        #     image_bytes = image.blob
+        #     image_filename = f"image_{shape.shape_id}.png"
+        #     with open(image_filename, 'wb') as image_file:
+        #         image_file.write(image_bytes)
+        #     shape_info['image_path'] = image_filename
 
         extracted_shapes.append(shape_info)
-        global_shapes[shape_info['id']] = shape_info 
+        global_shapes[shape_info['id']] = shape_info
 
     return extracted_shapes
 
@@ -97,8 +138,7 @@ class PresentationScene(Slide):
         for slide_number, shapes in enumerate(self.slides_shapes_info):
             if slide_number == 0:
                 continue # Skip if it is the first slide
-            
-            current_shape_ids = {shape_info['id'] for shape_info in shapes} # Check for existing shapes
+            current_shape_ids = {shape_info['id'] for shape_info in shapes}  # Check for existing shapes
 
             for shape_id in list(mobjects.keys()):  # Remove mobjects that arent present
                 if shape_id not in current_shape_ids:
@@ -118,9 +158,12 @@ class PresentationScene(Slide):
                         animations.append(mobject.animate.move_to(new_position).set(width=new_dimensions[0], height=new_dimensions[1]))
                     elif isinstance(mobject, Circle):
                         new_radius = min(new_dimensions) / 2
-                        animations.append(mobject.animate.move_to(new_position).set(width=new_radius*2, height=new_radius*2))
+                        animations.append(mobject.animate.move_to(new_position).set(width=new_radius * 2, height=new_radius * 2))
                     elif isinstance(mobject, Text):
                         animations.append(mobject.animate.move_to(new_position))
+                    elif isinstance(mobject, ImageMobject):
+                        animations.append(mobject.animate.move_to(new_position).set(width=new_dimensions[0],height=new_dimensions[1]))
+
 
                 else:
                     mobject = create_mobject(shape_info)
@@ -134,6 +177,7 @@ class PresentationScene(Slide):
                 self.wait(1)
 
             # self.next_slide()
+
 
 #%% Main Execution
 if __name__ == "__main__":
@@ -149,4 +193,4 @@ if __name__ == "__main__":
     config.media_width = "100%"
     scene.render()
 
-# %%
+#%%
