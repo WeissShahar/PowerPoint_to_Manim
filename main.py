@@ -8,7 +8,7 @@ from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE, MSO_AUTO_SHAPE_TYPE
 
 # Initialize variables
-presentation_path = 'presentations/BasicMeshes.pptx'
+presentation_path = 'presentations/PathPlanning (1).pptx'
 output_path = 'demonstration_for_Roi.py'
 image_dir = 'extracted_images'  # Directory for storing extracted images
 slides_shapes_info = []  # Store shapes info for all slides
@@ -18,6 +18,10 @@ background_color = 'WHITE'  # Manim color for background
 # Ensure the image directory exists
 if not os.path.exists(image_dir):
     os.makedirs(image_dir)
+
+def convert_margin_to_points(margin):
+    """Convert margin from Emu to points."""
+    return margin / 12700  # 1 point = 12700 EMUs
 
 # Helper Functions
 def convert_position(shape, frame_width, frame_height):
@@ -48,8 +52,23 @@ def extract_shapes_from_slide(slide, frame_width, frame_height):
                 shape_info['type'] = 'rectangle'
             elif shape.auto_shape_type == MSO_AUTO_SHAPE_TYPE.OVAL:
                 shape_info['type'] = 'oval'
+
             else:
                 continue
+        elif "Arrow" in shape.name:  # Detect arrows
+            shape_info['type'] = 'arrow'
+            # Use the exact arrow begin and end points
+            start_point = [
+                convert_margin_to_points(shape.begin_x) / 72 - frame_width / 2,
+                frame_height / 2 - convert_margin_to_points(shape.begin_y) / 72,
+                0
+            ]
+            end_point = [
+                convert_margin_to_points(shape.end_x) / 72 - frame_width / 2,
+                frame_height / 2 - convert_margin_to_points(shape.end_y) / 72,
+                0
+            ]
+            shape_info['dimensions'] = (start_point, end_point)
 
         elif shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX or shape.has_text_frame:  # Text box
             if shape.has_text_frame and shape.text:
@@ -65,7 +84,6 @@ def extract_shapes_from_slide(slide, frame_width, frame_height):
             with open(image_filename, 'wb') as image_file:
                 image_file.write(image_bytes)
             shape_info['image_path'] = image_filename
-
 
         elif shape.shape_type == MSO_SHAPE_TYPE.TABLE:  # Table
             shape_info['type'] = 'table'
@@ -83,9 +101,19 @@ def extract_shapes_from_slide(slide, frame_width, frame_height):
                 table_data.append(row_data)
                 font_sizes.append(row_font_sizes)
 
-
             shape_info['font_sizes'] = font_sizes
             shape_info['table_data'] = table_data
+
+        if shape.shape_type != MSO_SHAPE_TYPE.TEXT_BOX and shape.has_text_frame and shape.text and shape.shape_type:
+            text_info = {
+                'id': f"{shape.shape_id}_text",
+                'type': 'text',
+                'text': shape.text,
+                'position': convert_position(shape, frame_width, frame_height),  # Align text to the center of the shape
+                'dimensions': (shape.width.pt / 72, shape.height.pt / 72),
+                'image_path': None
+            }
+            extracted_shapes.append(text_info)  # Add text as a separate shape
 
         extracted_shapes.append(shape_info)
         global_shapes[shape_info['id']] = shape_info
@@ -111,9 +139,7 @@ class GeneratedPresentation(Slide):
             if shape_info['type'] == 'rectangle':
                 slide_code += f"        mobject = Rectangle(width={shape_info['dimensions'][0]}, height={shape_info['dimensions'][1]}, color=BLACK)\n"
             elif shape_info['type'] == 'oval':
-                diameter = min(shape_info['dimensions'])
-                radius = diameter / 2
-                slide_code += f"        mobject = Circle(radius={radius}, color=BLACK)\n"
+                slide_code += f"        mobject = Ellipse(width={shape_info['dimensions'][0]}, height={shape_info['dimensions'][1]}, color=BLACK)\n"
             elif shape_info['type'] == 'text':
                 slide_code += f"        mobject = Text('''{shape_info['text']}''', font_size=24, color=BLACK)\n"
             elif shape_info['type'] == 'image':
@@ -122,6 +148,9 @@ class GeneratedPresentation(Slide):
             elif shape_info['type'] == 'line':
                 start_point, end_point = shape_info['dimensions']
                 slide_code += f"        mobject = Line(start={start_point}, end={end_point}, color=BLACK)\n"
+            elif shape_info['type'] == 'arrow':
+                start_point, end_point = shape_info['dimensions']
+                slide_code += f"        mobject = Arrow(start={start_point}, end={end_point}, color=BLACK, buff=1, )\n"
             elif shape_info['type'] == 'table':
                 table_data = shape_info['table_data']
                 line_config = shape_info.get('line_config', {"stroke_color": "BLACK", "stroke_width": 2})
@@ -152,17 +181,25 @@ class GeneratedPresentation(Slide):
 
     return manim_code
 
+
 # Main Execution
 if __name__ == "__main__":
     presentation = Presentation(presentation_path)
+
+
 
     # Define frame width and height based on the PowerPoint slide dimensions
     frame_width = presentation.slide_width.pt / 72
     frame_height = presentation.slide_height.pt / 72
 
+    # slide = presentation.slides[5]
+    # shapes = extract_shapes_from_slide(slide, frame_width, frame_height)
+    # slides_shapes_info.append(shapes)
+
     for slide in presentation.slides:
         shapes = extract_shapes_from_slide(slide, frame_width, frame_height)
         slides_shapes_info.append(shapes)
+
 
     manim_code = generate_manim_code(slides_shapes_info, background_color, frame_width, frame_height)
 
