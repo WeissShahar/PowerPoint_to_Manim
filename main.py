@@ -1,5 +1,3 @@
-
-
 import subprocess
 import os
 import webbrowser
@@ -19,9 +17,26 @@ background_color = 'WHITE'  # Manim color for background
 if not os.path.exists(image_dir):
     os.makedirs(image_dir)
 
+
+def get_start_point_and_end_point(shape):
+    """Get start and end point of a line."""
+    start_point = [
+        convert_margin_to_points(shape.begin_x) / 72 - frame_width / 2,
+        frame_height / 2 - convert_margin_to_points(shape.begin_y) / 72,
+        0
+    ]
+    end_point = [
+        convert_margin_to_points(shape.end_x) / 72 - frame_width / 2,
+        frame_height / 2 - convert_margin_to_points(shape.end_y) / 72,
+        0
+    ]
+    return start_point, end_point
+
+
 def convert_margin_to_points(margin):
     """Convert margin from Emu to points."""
     return margin / 12700  # 1 point = 12700 EMUs
+
 
 # Helper Functions
 def convert_position(shape, frame_width, frame_height):
@@ -32,7 +47,8 @@ def convert_position(shape, frame_width, frame_height):
         0
     ]
 
-def extract_shapes_from_slide(slide, frame_width, frame_height):
+
+def extract_shapes_from_slide(slide, frame_width, frame_height, slide_index):
     """Function to extract relevant info from a slide and store shape details."""
     extracted_shapes = []
     for shape in slide.shapes:
@@ -57,17 +73,23 @@ def extract_shapes_from_slide(slide, frame_width, frame_height):
                 continue
         elif "Arrow" in shape.name:  # Detect arrows
             shape_info['type'] = 'arrow'
-            # Use the exact arrow begin and end points
-            start_point = [
-                convert_margin_to_points(shape.begin_x) / 72 - frame_width / 2,
-                frame_height / 2 - convert_margin_to_points(shape.begin_y) / 72,
-                0
-            ]
-            end_point = [
-                convert_margin_to_points(shape.end_x) / 72 - frame_width / 2,
-                frame_height / 2 - convert_margin_to_points(shape.end_y) / 72,
-                0
-            ]
+            shape_info['width'] = shape.width / 914440 if shape.width / 914440 >= 0.1 else 1
+            start_point, end_point = get_start_point_and_end_point(shape)
+            shape_info['dimensions'] = (start_point, end_point)
+        elif "Connector" in shape.name:
+            shape_info['type'] = 'line'
+            start_point, end_point = get_start_point_and_end_point(shape)
+            if shape.line.dash_style:
+                shape_info['dash_style'] = 'dashed'
+            else:
+                shape_info['dash_style'] = 'solid'
+
+                # Handle the line color if it's defined
+            color = shape.line.color
+            if color and hasattr(color, 'rgb') and color.rgb:
+                shape_info['color'] = color.rgb
+            else:
+                shape_info['color'] = '000000'  # Default color if not specified
             shape_info['dimensions'] = (start_point, end_point)
 
         elif shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX or shape.has_text_frame:  # Text box
@@ -80,7 +102,7 @@ def extract_shapes_from_slide(slide, frame_width, frame_height):
             shape_info['type'] = 'image'
             image = shape.image
             image_bytes = image.blob
-            image_filename = os.path.join(image_dir, f"image_{shape.shape_id}.png")
+            image_filename = os.path.join(image_dir, f"slide_{slide_index}_image_{shape.shape_id}.png")
             with open(image_filename, 'wb') as image_file:
                 image_file.write(image_bytes)
             shape_info['image_path'] = image_filename
@@ -135,6 +157,11 @@ class GeneratedPresentation(Slide):
     """
     for i, slide_shapes_info in enumerate(slides_shapes_info):
         slide_code = f"\n        # Slide {i + 1}\n        self.clear()\n"
+
+        # Add slide number as a text mobject in the bottom-right corner
+        slide_number_position = [frame_width / 2 - 1, -frame_height / 2 + 0.5, 0]  # Adjust as necessary
+        slide_code += f"        slide_number = Text('Slide {i + 1}', font_size=18, color=BLACK).move_to({slide_number_position})\n"
+        slide_code += "        self.add(slide_number)\n"
         for shape_info in slide_shapes_info:
             if shape_info['type'] == 'rectangle':
                 slide_code += f"        mobject = Rectangle(width={shape_info['dimensions'][0]}, height={shape_info['dimensions'][1]}, color=BLACK)\n"
@@ -146,11 +173,16 @@ class GeneratedPresentation(Slide):
                 slide_code += f"        mobject = ImageMobject('{shape_info['image_path']}')\n"
                 slide_code += f"        mobject.width, mobject.height = {shape_info['dimensions']}\n"
             elif shape_info['type'] == 'line':
-                start_point, end_point = shape_info['dimensions']
-                slide_code += f"        mobject = Line(start={start_point}, end={end_point}, color=BLACK)\n"
+                    start_point, end_point = shape_info['dimensions']
+                    color_hex = f"0x{shape_info['color']}"
+                    if shape_info.get('dash_style') == 'dashed':
+                        slide_code += f"        mobject = DashedLine(start={start_point}, end={end_point}, color=ManimColor.from_rgb({color_hex}))\n"
+                    else:
+                        slide_code += f"        mobject = Line(start={start_point}, end={end_point}, color=ManimColor.from_rgb({color_hex}))\n"
+
             elif shape_info['type'] == 'arrow':
                 start_point, end_point = shape_info['dimensions']
-                slide_code += f"        mobject = Arrow(start={start_point}, end={end_point}, color=BLACK, buff=1, )\n"
+                slide_code += f"        mobject = Arrow(start={start_point}, end={end_point}, color=BLACK, buff=1, max_tip_length_to_length_ratio=0.1, stroke_width = {shape_info['width']}  )\n"
             elif shape_info['type'] == 'table':
                 table_data = shape_info['table_data']
                 line_config = shape_info.get('line_config', {"stroke_color": "BLACK", "stroke_width": 2})
@@ -186,20 +218,17 @@ class GeneratedPresentation(Slide):
 if __name__ == "__main__":
     presentation = Presentation(presentation_path)
 
-
-
     # Define frame width and height based on the PowerPoint slide dimensions
     frame_width = presentation.slide_width.pt / 72
     frame_height = presentation.slide_height.pt / 72
 
-    # slide = presentation.slides[5]
-    # shapes = extract_shapes_from_slide(slide, frame_width, frame_height)
-    # slides_shapes_info.append(shapes)
+    slide = presentation.slides[5]
+    shapes = extract_shapes_from_slide(slide, frame_width, frame_height, 1)
+    slides_shapes_info.append(shapes)
 
-    for slide in presentation.slides:
-        shapes = extract_shapes_from_slide(slide, frame_width, frame_height)
-        slides_shapes_info.append(shapes)
-
+    # for slide_index, slide in enumerate(presentation.slides):
+    #     shapes = extract_shapes_from_slide(slide, frame_width, frame_height, slide_index)
+    #     slides_shapes_info.append(shapes)
 
     manim_code = generate_manim_code(slides_shapes_info, background_color, frame_width, frame_height)
 
