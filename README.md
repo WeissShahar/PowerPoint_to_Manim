@@ -168,5 +168,8 @@ As we can see, the color match-making is possible, but needs a little bit more h
 
 ## Conclusion:
 
-In conclusion, the goal of this project was to generate Manim scenes from PowerPoint presentations. However, working with python-pptx turned out to be a limiting approach, as it struggled to accurately extract key details like font sizes, colors, and alignments. Through further exploration, XML parsing emerged as a more promising direction, providing much better access to the raw data needed to precisely replicate slides. Moving forward, focusing on XML extraction and adding animation transitions between PowerPoint and Manim will significantly enhance the accuracy and effectiveness of the project.
+This project set out to bridge the gap between PowerPoint presentations and Manim animations, aiming to generate accurate Manim scenes from slide data. While python-pptx provided a solid foundation, it revealed limitations in extracting certain key details like font sizes, colors, and alignments. However, this challenge opened the door to discovering a more precise method—XML parsing.
 
+Through XML parsing, I was able to directly access the raw data within PowerPoint files, offering much greater accuracy and control over the content. This approach significantly improves the fidelity of recreating slides in Manim and sets a promising path forward.
+
+Looking ahead, focusing on XML extraction and implementing animation transitions between PowerPoint and Manim will bring the project even closer to its full potential. Overall, the project has laid a strong foundation for further development, with exciting possibilities for future enhancements
