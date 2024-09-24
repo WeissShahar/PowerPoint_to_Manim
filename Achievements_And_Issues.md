@@ -1,4 +1,4 @@
-## Achivments and Issues
+## Achievements and Issues
 
 As already mentioned, throughout this project, using python-pptx presented significant challenges when extracting key information such as font styles, font sizes, background colors, shape colors, and text alignment. These limitations often resulted in major inaccuracies when attempting to replicate PowerPoint slides within Manim.
 
@@ -20,8 +20,11 @@ The extraction of most non-styled data, such as shape types, text content, and b
 ### Issues:
 
 ### Font, Font Size, and Newline:
+**PPTX** (left) | **Manim** (right)
 
-Image 1:
+![Issues_1](https://github.com/user-attachments/assets/7ba5e677-bb81-43c6-ba3b-ee54f43d1565)
+
+---
 
 **Font and Font Size**: Inability to extract accurate font and size information led to mismatches, defaulting to placeholder values.
 
@@ -33,9 +36,14 @@ Image 1:
 
 **Possible Solution**: Calculate the textbox dimensions and check if words exceed the width to insert newlines accordingly.
 
+---
+
 ### Colors and Text Alignment:
 
-Image 2:
+**PPTX** (left) | **Manim** (right)
+![Issues_2](https://github.com/user-attachments/assets/6473bbc7-667b-4828-9bf4-0eae38f17df4)
+
+---
 
 **Colors**: Failure to extract shape and background colors resulted in defaulting to white backgrounds and black text.
 
@@ -53,19 +61,27 @@ Image 2:
 
 **Possible Solution**: Manually adjust text position after generating the Manim code.
 
+---
 
 ### Tables:
 
-Image 3
+**PPTX** (left) | **Manim** (right)
+![Issues_3](https://github.com/user-attachments/assets/dcab59e0-5c8f-4fdb-8d34-a6c697aa24bb)
+
+---
 
 **Tables**: Inability to extract cell sizes, and Manim's use of scale to change table size.
 
 **Possible Solution:** Extract cells size with XML, and manually adjust tables size and location as needed after generating the Manim code.
 
+---
 
 ### Math Equation and Lines:
 
-image 4
+**PPTX** (left) | **Manim** (right)
+![Issues_4](https://github.com/user-attachments/assets/203e84b1-c6c8-469f-af13-b8b535f02641)
+
+---
 
 **Math Equations:** 
 Math Equations not being supported in python-pptx
@@ -79,6 +95,8 @@ Note: Converting it to Manim might still be an issue.
 Lines accuracy is not consistent through out the slides.
 
 **Possible Solution:** Find a better generalizing technique for Lines and Arrows
+
+---
 
 ### General Issues:
 
