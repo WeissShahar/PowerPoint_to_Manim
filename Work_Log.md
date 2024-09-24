@@ -35,9 +35,6 @@ Key details:
 
 During that time, I also improved it to work on a multiple slides presentation.
 
-
----------------- Insert image here --------------
-
 ---
 
 #### Week 6: Research on Color and Font Size Attributes
@@ -49,7 +46,7 @@ Key findings:
 * For most shapes, the library did not return values for these attributes.
 * In a few cases, I was able to retrieve some information by navigating the pptx hierarchy, but the results were inconsistent.
 
-Following Week 6, each week included attempts to resolve this issue. These attributes are critical to replicating the exact presentation in Manim, and I have been continually researching and testing various solutions to overcome these challenges (More on that later).
+Following Week 6, each week included attempts to resolve this issue. These attributes are critical to replicating the exact presentation in Manim, and I have been continually researching and testing various solutions to overcome these challenges (More on that in the Achivments_And_issues.md file).
 
 ---
 
@@ -105,7 +102,7 @@ However, as previously noted, the inability to extract font size from PowerPoint
 
  #### Weeks 13-14: XML
 
- During Weeks 12 and 13, I decided to dive deeper into XML parsing to extract more detailed information from PowerPoint files. My original goal was to figure out how to retrieve math equations, since the python-pptx library doesn't handle those well. But as I started working with the raw XML data, I realized there was more potential. 
+ During Weeks 13 and 14, I decided to dive deeper into XML parsing to extract more detailed information from PowerPoint files. My original goal was to figure out how to retrieve math equations, since the python-pptx library doesn't handle those well. But as I started working with the raw XML data, I realized there was more potential. 
 
 This approach started to seem really promising, especially for things like font size, color, and alignment settings-all the details that python-pptx struggled with. XML has access to raw data directly from the PowerPoint files.
 
