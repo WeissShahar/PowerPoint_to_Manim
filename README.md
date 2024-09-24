@@ -131,7 +131,7 @@ elif shape_info['type'] == 'star':
 
 ## Results:
 
-For more details on the challenges and issues encountered during the process, see the [Achivments_And_Issues](https://github.com/WeissShahar/PowerPoint_to_Manim/blob/master/Achivments_And_Issues.md) section.
+For more details on the challenges and issues encountered during the process, see the [Achievements_And_Issues](https://github.com/WeissShahar/PowerPoint_to_Manim/blob/master/Achievements_And_Issues.md) section.
 
 Below are two examples comparing PowerPoint slides with their corresponding Manim-generated slides:
 
@@ -152,6 +152,14 @@ While python-pptx offered a basic way to extract data from PowerPoint slides, it
 With XML parsing, I was able to extract more accurate font sizes, detailed color values, and shape properties, leading to significantly improved scene recreation in Manim. However, fully integrating XML parsing into the project wasn't achiveable within the current scope, meaning this version remains in a BETA state. Although still in testing, it offers a promising path forward for future developments.
 
 Below are two examples that demonstrate the results using XML parsing:
+
+**PPTX** (left) | **Manim** (right)
+![XML_1](https://github.com/user-attachments/assets/a0df064d-b7ab-4e64-91b1-fe9041a3560a)
+
+---
+
+**PPTX** (left) | **Manim** (right)
+![XML_2](https://github.com/user-attachments/assets/db77d6dc-cd21-4fdf-a43c-0a7b9d2a9ca3)
 
 As we can see, the color match-making is possible, but needs a little bit more handling
 
