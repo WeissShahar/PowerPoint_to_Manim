@@ -146,6 +146,8 @@ Converting a Manim-generated slide back to a PowerPoint format will result in th
 
 
 ## XML Extraction
+Check the [XML_Testing](https://github.com/WeissShahar/PowerPoint_to_Manim/blob/master/xml_testing.py) for the code.
+
 
 While python-pptx offered a basic way to extract data from PowerPoint slides, it struggled to retrieve key details like font sizes, colors, and alignment. XML parsing, on the other hand, taps directly into the raw data within PowerPoint files, offering far more precision. This approach allows access to all attributes and slide elements that python-pptx often missed, making it possible to more faithfully replicate slides in Manim.
 
