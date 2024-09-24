@@ -131,7 +131,7 @@ elif shape_info['type'] == 'star':
 
 ## Results:
 
-For more details on the challenges and issues encountered during the process, see the [Issues](...) section.
+For more details on the challenges and issues encountered during the process, see the [Achivments_And_Issues](https://github.com/WeissShahar/PowerPoint_to_Manim/blob/master/Achivments_And_Issues.md) section.
 
 Below are two examples comparing PowerPoint slides with their corresponding Manim-generated slides:
 
