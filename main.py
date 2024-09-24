@@ -1,13 +1,12 @@
 import subprocess
 import os
 import webbrowser
-
+import argparse
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE, MSO_AUTO_SHAPE_TYPE
 
 # Initialize variables
-presentation_path = 'presentations/PathPlanning (1).pptx'
-output_path = 'demonstration_for_Roi.py'
+
 image_dir = 'extracted_images'  # Directory for storing extracted images
 slides_shapes_info = []  # Store shapes info for all slides
 global_shapes = {}  # Global dictionary to store shapes info with shape_id as key
@@ -48,6 +47,8 @@ def convert_position(shape, frame_width, frame_height):
     ]
 
 
+
+
 def extract_shapes_from_slide(slide, frame_width, frame_height, slide_index):
     """Function to extract relevant info from a slide and store shape details."""
     extracted_shapes = []
@@ -79,20 +80,27 @@ def extract_shapes_from_slide(slide, frame_width, frame_height, slide_index):
         elif "Connector" in shape.name:
             shape_info['type'] = 'line'
             start_point, end_point = get_start_point_and_end_point(shape)
-            if shape.line.dash_style:
-                shape_info['dash_style'] = 'dashed'
-            else:
-                shape_info['dash_style'] = 'solid'
 
-                # Handle the line color if it's defined
+            # Try to handle dash style
+            try:
+                dash_style = shape.line.dash_style
+                if dash_style:
+                    shape_info['dash_style'] = dash_style
+                else:
+                    shape_info['dash_style'] = 'solid'  # Default if not recognized
+            except KeyError:
+                shape_info['dash_style'] = 'solid'  # Handle unrecognized dash styles
+
+            # Handle line color if it's defined
             color = shape.line.color
             if color and hasattr(color, 'rgb') and color.rgb:
                 shape_info['color'] = color.rgb
             else:
                 shape_info['color'] = '000000'  # Default color if not specified
+
             shape_info['dimensions'] = (start_point, end_point)
 
-        elif shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX or shape.has_text_frame:  # Text box
+        elif shape.shape_type == MSO_SHAPE_TYPE.TEXT_BOX:  # Text box
             if shape.has_text_frame and shape.text:
                 shape_info['type'] = 'text'
             else:
@@ -159,9 +167,9 @@ class GeneratedPresentation(Slide):
         slide_code = f"\n        # Slide {i + 1}\n        self.clear()\n"
 
         # Add slide number as a text mobject in the bottom-right corner
-        slide_number_position = [frame_width / 2 - 1, -frame_height / 2 + 0.5, 0]  # Adjust as necessary
-        slide_code += f"        slide_number = Text('Slide {i + 1}', font_size=18, color=BLACK).move_to({slide_number_position})\n"
-        slide_code += "        self.add(slide_number)\n"
+        # slide_number_position = [frame_width / 2 - 1, -frame_height / 2 + 0.5, 0]  # Adjust as necessary
+        # slide_code += f"        slide_number = Text('Slide {i + 1}', font_size=18, color=BLACK).move_to({slide_number_position})\n"
+        # slide_code += "        self.add(slide_number)\n"
         for shape_info in slide_shapes_info:
             if shape_info['type'] == 'rectangle':
                 slide_code += f"        mobject = Rectangle(width={shape_info['dimensions'][0]}, height={shape_info['dimensions'][1]}, color=BLACK)\n"
@@ -173,12 +181,13 @@ class GeneratedPresentation(Slide):
                 slide_code += f"        mobject = ImageMobject('{shape_info['image_path']}')\n"
                 slide_code += f"        mobject.width, mobject.height = {shape_info['dimensions']}\n"
             elif shape_info['type'] == 'line':
-                    start_point, end_point = shape_info['dimensions']
-                    color_hex = f"0x{shape_info['color']}"
-                    if shape_info.get('dash_style') == 'dashed':
-                        slide_code += f"        mobject = DashedLine(start={start_point}, end={end_point}, color=ManimColor.from_rgb({color_hex}))\n"
-                    else:
-                        slide_code += f"        mobject = Line(start={start_point}, end={end_point}, color=ManimColor.from_rgb({color_hex}))\n"
+                start_point, end_point = shape_info['dimensions']
+                color_hex = f"0x{shape_info['color']}" if 'color' in shape_info and shape_info[
+                    'color'] else "0x000000"  # Default to black if color is missing or None
+                if shape_info.get('dash_style') == 'dashed':
+                    slide_code += f"        mobject = DashedLine(start={start_point}, end={end_point}, color=ManimColor.from_rgb({color_hex}))\n"
+                else:
+                    slide_code += f"        mobject = Line(start={start_point}, end={end_point}, color=ManimColor.from_rgb({color_hex}))\n"
 
             elif shape_info['type'] == 'arrow':
                 start_point, end_point = shape_info['dimensions']
@@ -214,21 +223,30 @@ class GeneratedPresentation(Slide):
     return manim_code
 
 
+# Argument parser
+parser = argparse.ArgumentParser(description="PowerPoint to Manim and HTML conversion tool.")
+parser.add_argument('presentation', type=str, help="Path to the PowerPoint presentation file.")
+parser.add_argument('--render', action='store_true', help="Render the Manim scene")
+parser.add_argument('--convert', action='store_true', help="Convert the Manim scene to HTML and open it in the browser")
+args = parser.parse_args()
+
 # Main Execution
 if __name__ == "__main__":
+    presentation_path = args.presentation  # Use the argument for the presentation path
+    presentation_name = os.path.splitext(os.path.basename(presentation_path))[0]
+    output_path = f'generated_manim_code_for_{presentation_name}.py'
+    if not os.path.isfile(presentation_path):
+        print(f"Error: The file '{presentation_path}' does not exist.")
+        exit(1)
     presentation = Presentation(presentation_path)
 
     # Define frame width and height based on the PowerPoint slide dimensions
     frame_width = presentation.slide_width.pt / 72
     frame_height = presentation.slide_height.pt / 72
 
-    slide = presentation.slides[5]
-    shapes = extract_shapes_from_slide(slide, frame_width, frame_height, 1)
-    slides_shapes_info.append(shapes)
-
-    # for slide_index, slide in enumerate(presentation.slides):
-    #     shapes = extract_shapes_from_slide(slide, frame_width, frame_height, slide_index)
-    #     slides_shapes_info.append(shapes)
+    for slide_index, slide in enumerate(presentation.slides):
+        shapes = extract_shapes_from_slide(slide, frame_width, frame_height, slide_index)
+        slides_shapes_info.append(shapes)
 
     manim_code = generate_manim_code(slides_shapes_info, background_color, frame_width, frame_height)
 
@@ -237,16 +255,21 @@ if __name__ == "__main__":
 
     print(f"Manim code generated and saved to {output_path}")
 
-    # Automate rendering and conversion
+    # If the user wants to render the Manim scene
+if args.render:
     print("Running Manim rendering...")
     subprocess.run(['manim', '-ql', output_path, 'GeneratedPresentation'])
 
+    # If the user wants to convert to HTML and open in the browser
+if args.convert:
+    print("Converting to PPTX...")
+    subprocess.run(['manim-slides', 'convert', '--to=pptx', 'GeneratedPresentation', f'manim_{presentation_name}.pptx'])
+
+    print(f"PPTX presentation saved as manim_{presentation_name}.pptx")
+
     print("Converting to HTML...")
-    subprocess.run(['manim-slides', 'convert', 'GeneratedPresentation', 'pre.html'])
+    subprocess.run(['manim-slides', 'convert', 'GeneratedPresentation', 'manim_presentation.html'])
 
-    print("Process completed. HTML presentation saved as pre.html.")
-
-    # Open the HTML presentation in the default web browser
-    html_path = os.path.abspath('pre.html')
-    print(f"Opening HTML presentation: {html_path}")
+    print("Opening HTML presentation...")
+    html_path = os.path.abspath('manim_presentation.html')
     webbrowser.open(f'file://{html_path}')
