@@ -1,6 +1,6 @@
 # PowerPoint To Manim Project
 
-This repository contains my Computer Graphics project, which aims to generate Manim code from PowerPoint presentations. Using python-pptx to extract slide data, alongside Manim and Manim-Slides for rendering, the project seeks to recreate PowerPoint slides as accurately as possible, while addressing the limitations of each tool.
+This repository contains my Computer Graphics project from the University of Haifa, supervised by Prof. Roi Poranne. The project aims to generate Manim code from PowerPoint presentations. Using python-pptx to extract slide data, alongside Manim and Manim-Slides for rendering, the project seeks to recreate PowerPoint slides as accurately as possible, while addressing the limitations of each tool.
 
 
 ## How to Run
